@@ -378,7 +378,8 @@ Ship through reproducible CI
 ## References
 
 - Rust release announcements: https://blog.rust-lang.org/releases/
-- Rust 1.98.0: https://blog.rust-lang.org/2026/08/20/Rust-1.98.0/
+- Rust 1.98.0 (handbook baseline): https://blog.rust-lang.org/2026/08/20/Rust-1.98.0/
+- Rust 1.100.0 (current stable): https://blog.rust-lang.org/2026/11/12/Rust-1.100.0/
 - Rust Book: https://doc.rust-lang.org/book/
 - Reference: https://doc.rust-lang.org/stable/reference/
 - Cargo: https://doc.rust-lang.org/cargo/

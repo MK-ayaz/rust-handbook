@@ -10,6 +10,10 @@
 
 Rust supports all of these, but the ownership/type system constrains how data can cross boundaries.
 
+> **Note on examples:** snippets in this chapter show the interesting statements only. Assume each one lives
+> inside `fn main()` (or a helper `fn`) and that `unwrap()` is used to keep the example short, not as a
+> recommendation for production error handling.
+
 ## 2. Threads
 
 ```rust
@@ -37,6 +41,29 @@ handle.join().unwrap();
 ```
 
 The `move` closure explicitly transfers ownership into the thread.
+
+### Scoped threads
+
+`thread::spawn` requires `'static` data, which forces `move` plus `Arc` when you want to lend a value to a
+thread. `std::thread::scope` (stable since Rust 1.63) lets threads borrow non-`'static` data, because the
+scope guarantees they are joined before it returns:
+
+```rust
+use std::thread;
+
+let data = vec![1, 2, 3, 4];
+
+thread::scope(|scope| {
+    let left = &data[..2];
+    let right = &data[2..];
+
+    scope.spawn(|| println!("left: {left:?}"));
+    scope.spawn(|| println!("right: {right:?}"));
+});
+// All threads have finished; `data` is usable again.
+```
+
+Prefer a scope when the parent outlives the workers and you do not need detached threads.
 
 ## 3. Channels
 

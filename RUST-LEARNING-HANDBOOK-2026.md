@@ -19,7 +19,7 @@ The goal is **competence**, not merely finishing tutorials. Every section theref
 
 ## Official baseline
 
-The current official Rust release is **1.98.0** (August 20, 2026). Rust's current official learning material uses the **2024 Edition** idioms. Rust releases follow a six-week release process, so update this handbook's version note when your toolchain moves materially forward. [Rust 1.98.0 release](https://blog.rust-lang.org/2026/08/20/Rust-1.98.0/) · [The Rust Programming Language](https://doc.rust-lang.org/book/) · [Rust Editions](https://doc.rust-lang.org/stable/book/appendix-05-editions.html)
+The handbook's **baseline** is Rust **1.98.0** (August 20, 2026), and its material uses the **2024 Edition** idioms. The current stable toolchain moves every six weeks (Rust 1.100.0 shipped 2026-11-12), so treat the baseline as the minimum supported version and update this note when your toolchain moves materially forward. [Rust 1.98.0 release](https://blog.rust-lang.org/2026/08/20/Rust-1.98.0/) · [The Rust Programming Language](https://doc.rust-lang.org/book/) · [Rust Editions](https://doc.rust-lang.org/stable/book/appendix-05-editions.html)
 
 ## Roadmap
 
@@ -50,6 +50,16 @@ Read the files in this order:
 - `07-production-projects-reference.md`
 
 Do not jump into `unsafe`, async, or advanced lifetime tricks before ownership and borrowing are comfortable.
+
+### Single-file edition
+
+`RUST-LEARNING-HANDBOOK-2026.md` is a generated, self-contained copy of this README plus all seven chapters
+plus `RUST-STUDY-TRACKER.md`. **Edit the chapter files, never the composite.** Rebuild it with:
+
+```bash
+python build-handbook.py           # regenerate the composite
+python build-handbook.py --check   # verify it is current (used in CI)
+```
 
 ## Environment setup
 
@@ -177,6 +187,10 @@ Do not define “finished Rust” as memorizing the language. A better standard 
 
 # 01 — Rust Fundamentals
 
+> **Reading the snippets:** most examples show only the statements under discussion. Unless a `fn main()`
+> wrapper is shown, assume the code lives inside one. Snippets marked `// invalid` are meant to fail to compile,
+> and are there so you learn to read the error.
+
 ## 1. Rust's core idea
 
 Rust is a systems programming language designed around performance, reliability, and memory safety without a garbage collector. Its distinctive model moves many correctness checks into compilation while still allowing low-level control. The official Rust Book describes this as balancing low-level control with high-level ergonomics.
@@ -271,6 +285,10 @@ Prefer accepting `&str` when a function only needs to read text:
 ```rust
 fn greet(name: &str) -> String {
     format!("Hello, {name}!")
+}
+
+fn main() {
+    println!("{}", greet("Ada"));
 }
 ```
 
@@ -705,7 +723,16 @@ fn first(text: &str) -> &str {
 }
 ```
 
-can be written without an explicit `'a` because the input/reference-output relationship is unambiguous.
+can be written without an explicit `'a` because the elision rules supply it. The rules are:
+
+1. Every elided input lifetime becomes its own fresh lifetime parameter.
+2. If there is **exactly one** input lifetime, it is assigned to all elided output lifetimes.
+3. If there are multiple input lifetimes but one of them is `&self` or `&mut self`, `self`'s lifetime is
+   assigned to all elided output lifetimes.
+
+If none of those rules determine an output lifetime, the compiler requires an explicit annotation. Note that
+`fn first(text: &str, suffix: &str) -> &str` fails to compile precisely because rule 2 no longer applies and
+rule 3 has no `self`.
 
 ## 11. Structs with references
 
@@ -798,6 +825,15 @@ println!("{len} {value}");
 
 The immutable borrow used to calculate `len` ends before the mutation is required.
 
+### Edition 2024 temporary-scope changes
+
+Two drop-timing rules changed in the 2024 Edition, and both are visible through the borrow checker:
+
+- **`if let` temporaries** in the scrutinee are dropped before the `else` block in 2024, rather than at the end
+  of the whole `if let`. This lets you mutate a value in `else` that the scrutinee borrowed.
+- **Tail-expression temporaries** are dropped before the function's local variables in 2024. A temporary created
+  in the final expression of a block no longer outlives the locals of that block.
+
 ## 17. Interior mutability
 
 Rust normally enforces mutation through `&mut`. Interior mutability provides controlled mutation through shared references using types such as:
@@ -824,13 +860,16 @@ Useful for recursive data structures and explicit heap allocation.
 
 ### `Rc<T>`
 
-Reference-counted shared ownership for single-threaded code.
+Reference-counted shared ownership for single-threaded code. The reference count is a plain integer, so `Rc<T>`
+is deliberately `!Send` and `!Sync`; sharing it across threads would race on the count.
 
 ### `Arc<T>`
 
 Atomically reference-counted shared ownership for multi-threaded code.
 
-`Rc` is not thread-safe; `Arc` provides the synchronization needed for reference-count updates.
+`Arc<T>` implements `Send` and `Sync` only when `T: Send + Sync`. The atomic count makes the *count* safe to
+share, but it says nothing about the value inside: to mutate shared data you still combine it with a lock, as in
+`Arc<Mutex<T>>` or `Arc<RwLock<T>>`.
 
 ## 19. Designing around ownership
 
@@ -924,6 +963,9 @@ You should be able to answer these without running the code:
 ---
 
 # 03 — Types, Traits, Generics, and Zero-Cost Abstractions
+
+> **Reading the snippets:** examples show the item or statement under discussion, not always a complete
+> program. Assume free-standing statements live inside a function such as `fn main()`.
 
 ## 1. Rust's type-system mindset
 
@@ -1269,7 +1311,7 @@ Implement a resource that cannot execute an operation until it has been initiali
 
 - Generics: https://doc.rust-lang.org/book/ch10-00-generics.html
 - Traits: https://doc.rust-lang.org/book/ch10-02-traits.html
-- Advanced types: https://doc.rust-lang.org/book/ch20-02-advanced-types.html
+- Advanced types: https://doc.rust-lang.org/book/ch20-03-advanced-types.html
 - Rust Reference: https://doc.rust-lang.org/stable/reference/
 
 
@@ -1477,6 +1519,10 @@ resolver = "3"
 
 Keep domain logic in reusable library crates when multiple binaries or interfaces need it.
 
+`resolver = "3"` is the default for Edition 2024 (it requires Rust 1.84+), and it enables MSRV-aware dependency
+selection. In a single package the resolver is inferred from `edition = "2024"`, but a **virtual workspace** has
+no edition of its own, so the resolver must be set explicitly here.
+
 ## 14. Feature flags
 
 Features allow conditional compilation and optional dependencies.
@@ -1582,6 +1628,10 @@ Do not force this exact architecture into every project. Treat it as a reasoning
 
 Rust supports all of these, but the ownership/type system constrains how data can cross boundaries.
 
+> **Note on examples:** snippets in this chapter show the interesting statements only. Assume each one lives
+> inside `fn main()` (or a helper `fn`) and that `unwrap()` is used to keep the example short, not as a
+> recommendation for production error handling.
+
 ## 2. Threads
 
 ```rust
@@ -1609,6 +1659,29 @@ handle.join().unwrap();
 ```
 
 The `move` closure explicitly transfers ownership into the thread.
+
+### Scoped threads
+
+`thread::spawn` requires `'static` data, which forces `move` plus `Arc` when you want to lend a value to a
+thread. `std::thread::scope` (stable since Rust 1.63) lets threads borrow non-`'static` data, because the
+scope guarantees they are joined before it returns:
+
+```rust
+use std::thread;
+
+let data = vec![1, 2, 3, 4];
+
+thread::scope(|scope| {
+    let left = &data[..2];
+    let right = &data[2..];
+
+    scope.spawn(|| println!("left: {left:?}"));
+    scope.spawn(|| println!("right: {right:?}"));
+});
+// All threads have finished; `data` is usable again.
+```
+
+Prefer a scope when the parent outlives the workers and you do not need detached threads.
 
 ## 3. Channels
 
@@ -1831,7 +1904,18 @@ Unsafe Rust permits a small set of operations the compiler cannot fully verify, 
 
 The Rustonomicon emphasizes that `unsafe` does not turn off all safety checking. It creates a boundary around operations whose contracts must be upheld by the programmer.
 
-Reference: https://doc.rust-lang.org/stable/nomicon/what-unsafe-does.html
+Reference: https://doc.rust-lang.org/nomicon/what-unsafe-does.html
+
+### Edition 2024 changes to `unsafe`
+
+If you are writing 2024 Edition code, three rules differ from older material:
+
+1. **`extern` blocks must be declared `unsafe extern`** (`missing_unsafe_on_extern` lint). Functions in an
+   `extern` block are implicitly unsafe; add the `safe` qualifier only to bindings you have audited.
+2. **`unsafe_op_in_unsafe_fn` is warn-by-default.** The body of an `unsafe fn` is no longer an implicit
+   `unsafe` block; you must write an explicit unsafe block inside it.
+3. **Unsafe attributes require the `unsafe(...)` wrapper:** `#[unsafe(no_mangle)]`,
+   `#[unsafe(export_name = "...")]`, `#[unsafe(link_section = "...")]`.
 
 ## 3. Safety invariants
 
@@ -1848,11 +1932,14 @@ unsafe {
 Better:
 
 ```rust
-// SAFETY:
-// `ptr` is non-null, properly aligned, points to a live `T`,
-// and is valid for reads for the duration of this operation.
-unsafe {
-    ptr.read()
+/// # Safety
+/// `ptr` must be non-null, properly aligned, and point to a valid `T`
+/// that stays valid for the duration of the call.
+unsafe fn read_once<T>(ptr: *const T) -> T {
+    // SAFETY:
+    // `ptr` is non-null, properly aligned, points to a live `T`,
+    // and is valid for reads for the duration of this operation.
+    unsafe { ptr.read() }
 }
 ```
 
@@ -1860,14 +1947,13 @@ The comment is not a substitute for proof. It records the contract that must be 
 
 ## 4. Scope unsafe narrowly
 
-Prefer:
+Prefer keeping validation in safe code and the unsafe region minimal:
 
 ```rust
-pub fn safe_api(...) -> Result<...> {
-    // validate invariants here
-    unsafe {
-        // smallest possible unsafe region
-    }
+pub fn first_u32_le(bytes: &[u8]) -> Result<u32, &'static str> {
+    let first_four = bytes.get(..4).ok_or("need at least 4 bytes")?;
+    let array: [u8; 4] = first_four.try_into().unwrap();
+    Ok(u32::from_le_bytes(array))
 }
 ```
 
@@ -1875,18 +1961,21 @@ A small unsafe core surrounded by safe validation is easier to audit than a gian
 
 The Rustonomicon specifically discusses restricting unsafe code and building safe abstractions around verified invariants.
 
-Reference: https://doc.rust-lang.org/stable/nomicon/working-with-unsafe.html
+Reference: https://doc.rust-lang.org/nomicon/working-with-unsafe.html
 
 ## 5. Raw pointers
 
 Rust has raw pointer types:
 
 ```rust
-let ptr: *const i32;
-let mut_ptr: *mut i32;
+let x = 5i32;
+let ptr: *const i32 = &x as *const i32;
+
+let mut y = 6i32;
+let mut_ptr: *mut i32 = &mut y as *mut i32;
 ```
 
-Dereferencing them is unsafe because the compiler cannot prove validity, alignment, aliasing, or lifetime correctness in the general case.
+Creating them is safe. Dereferencing them is unsafe because the compiler cannot prove validity, alignment, aliasing, or lifetime correctness in the general case.
 
 ## 6. Undefined behavior
 
@@ -1905,6 +1994,23 @@ Reference: https://doc.rust-lang.org/std/ffi/
 ## 8. `extern`
 
 An external function declaration communicates an ABI boundary. Calling foreign functions is unsafe because Rust cannot verify what the foreign code will do.
+
+In Rust 2024 the block itself must be marked `unsafe extern`:
+
+```rust
+// Edition 2024: the whole block is `unsafe extern`.
+unsafe extern "C" {
+    // Implicitly unsafe to call.
+    fn abs(input: i32) -> i32;
+    // Opt in explicitly when you have audited the binding.
+    safe fn strlen(ptr: *const std::ffi::c_char) -> usize;
+}
+
+fn distance_to_zero(value: i32) -> i32 {
+    // SAFETY: `abs` takes a plain i32 and has no other contract to uphold.
+    unsafe { abs(value) }
+}
+```
 
 The current Rust Reference documents external blocks and FFI syntax: https://doc.rust-lang.org/reference/items/external-blocks.html
 
@@ -1936,6 +2042,15 @@ struct Point {
 ```
 
 Do not assume Rust's default struct layout is suitable for foreign ABI contracts.
+
+An exported function that a C caller will link against is written like this in Edition 2024:
+
+```rust
+#[unsafe(no_mangle)]
+pub extern "C" fn point_manhattan_distance(a: Point, b: Point) -> i32 {
+    (a.x - b.x).abs() + (a.y - b.y).abs()
+}
+```
 
 ## 11. Performance starts with measurement
 
@@ -2465,7 +2580,8 @@ Ship through reproducible CI
 ## References
 
 - Rust release announcements: https://blog.rust-lang.org/releases/
-- Rust 1.98.0: https://blog.rust-lang.org/2026/08/20/Rust-1.98.0/
+- Rust 1.98.0 (handbook baseline): https://blog.rust-lang.org/2026/08/20/Rust-1.98.0/
+- Rust 1.100.0 (current stable): https://blog.rust-lang.org/2026/11/12/Rust-1.100.0/
 - Rust Book: https://doc.rust-lang.org/book/
 - Reference: https://doc.rust-lang.org/stable/reference/
 - Cargo: https://doc.rust-lang.org/cargo/

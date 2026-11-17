@@ -1,5 +1,8 @@
 # 03 — Types, Traits, Generics, and Zero-Cost Abstractions
 
+> **Reading the snippets:** examples show the item or statement under discussion, not always a complete
+> program. Assume free-standing statements live inside a function such as `fn main()`.
+
 ## 1. Rust's type-system mindset
 
 Rust encourages you to make invalid states difficult or impossible to represent. Strong domain types often remove entire classes of runtime checks.
@@ -344,5 +347,5 @@ Implement a resource that cannot execute an operation until it has been initiali
 
 - Generics: https://doc.rust-lang.org/book/ch10-00-generics.html
 - Traits: https://doc.rust-lang.org/book/ch10-02-traits.html
-- Advanced types: https://doc.rust-lang.org/book/ch20-02-advanced-types.html
+- Advanced types: https://doc.rust-lang.org/book/ch20-03-advanced-types.html
 - Rust Reference: https://doc.rust-lang.org/stable/reference/

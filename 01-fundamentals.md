@@ -1,5 +1,9 @@
 # 01 — Rust Fundamentals
 
+> **Reading the snippets:** most examples show only the statements under discussion. Unless a `fn main()`
+> wrapper is shown, assume the code lives inside one. Snippets marked `// invalid` are meant to fail to compile,
+> and are there so you learn to read the error.
+
 ## 1. Rust's core idea
 
 Rust is a systems programming language designed around performance, reliability, and memory safety without a garbage collector. Its distinctive model moves many correctness checks into compilation while still allowing low-level control. The official Rust Book describes this as balancing low-level control with high-level ergonomics.
@@ -94,6 +98,10 @@ Prefer accepting `&str` when a function only needs to read text:
 ```rust
 fn greet(name: &str) -> String {
     format!("Hello, {name}!")
+}
+
+fn main() {
+    println!("{}", greet("Ada"));
 }
 ```
 

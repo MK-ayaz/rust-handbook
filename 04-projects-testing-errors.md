@@ -200,6 +200,10 @@ resolver = "3"
 
 Keep domain logic in reusable library crates when multiple binaries or interfaces need it.
 
+`resolver = "3"` is the default for Edition 2024 (it requires Rust 1.84+), and it enables MSRV-aware dependency
+selection. In a single package the resolver is inferred from `edition = "2024"`, but a **virtual workspace** has
+no edition of its own, so the resolver must be set explicitly here.
+
 ## 14. Feature flags
 
 Features allow conditional compilation and optional dependencies.

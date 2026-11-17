@@ -143,7 +143,16 @@ fn first(text: &str) -> &str {
 }
 ```
 
-can be written without an explicit `'a` because the input/reference-output relationship is unambiguous.
+can be written without an explicit `'a` because the elision rules supply it. The rules are:
+
+1. Every elided input lifetime becomes its own fresh lifetime parameter.
+2. If there is **exactly one** input lifetime, it is assigned to all elided output lifetimes.
+3. If there are multiple input lifetimes but one of them is `&self` or `&mut self`, `self`'s lifetime is
+   assigned to all elided output lifetimes.
+
+If none of those rules determine an output lifetime, the compiler requires an explicit annotation. Note that
+`fn first(text: &str, suffix: &str) -> &str` fails to compile precisely because rule 2 no longer applies and
+rule 3 has no `self`.
 
 ## 11. Structs with references
 
@@ -236,6 +245,15 @@ println!("{len} {value}");
 
 The immutable borrow used to calculate `len` ends before the mutation is required.
 
+### Edition 2024 temporary-scope changes
+
+Two drop-timing rules changed in the 2024 Edition, and both are visible through the borrow checker:
+
+- **`if let` temporaries** in the scrutinee are dropped before the `else` block in 2024, rather than at the end
+  of the whole `if let`. This lets you mutate a value in `else` that the scrutinee borrowed.
+- **Tail-expression temporaries** are dropped before the function's local variables in 2024. A temporary created
+  in the final expression of a block no longer outlives the locals of that block.
+
 ## 17. Interior mutability
 
 Rust normally enforces mutation through `&mut`. Interior mutability provides controlled mutation through shared references using types such as:
@@ -262,13 +280,16 @@ Useful for recursive data structures and explicit heap allocation.
 
 ### `Rc<T>`
 
-Reference-counted shared ownership for single-threaded code.
+Reference-counted shared ownership for single-threaded code. The reference count is a plain integer, so `Rc<T>`
+is deliberately `!Send` and `!Sync`; sharing it across threads would race on the count.
 
 ### `Arc<T>`
 
 Atomically reference-counted shared ownership for multi-threaded code.
 
-`Rc` is not thread-safe; `Arc` provides the synchronization needed for reference-count updates.
+`Arc<T>` implements `Send` and `Sync` only when `T: Send + Sync`. The atomic count makes the *count* safe to
+share, but it says nothing about the value inside: to mutate shared data you still combine it with a lock, as in
+`Arc<Mutex<T>>` or `Arc<RwLock<T>>`.
 
 ## 19. Designing around ownership
 

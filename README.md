@@ -19,7 +19,7 @@ The goal is **competence**, not merely finishing tutorials. Every section theref
 
 ## Official baseline
 
-The current official Rust release is **1.98.0** (August 20, 2026). Rust's current official learning material uses the **2024 Edition** idioms. Rust releases follow a six-week release process, so update this handbook's version note when your toolchain moves materially forward. [Rust 1.98.0 release](https://blog.rust-lang.org/2026/08/20/Rust-1.98.0/) · [The Rust Programming Language](https://doc.rust-lang.org/book/) · [Rust Editions](https://doc.rust-lang.org/stable/book/appendix-05-editions.html)
+The handbook's **baseline** is Rust **1.98.0** (August 20, 2026), and its material uses the **2024 Edition** idioms. The current stable toolchain moves every six weeks (Rust 1.100.0 shipped 2026-11-12), so treat the baseline as the minimum supported version and update this note when your toolchain moves materially forward. [Rust 1.98.0 release](https://blog.rust-lang.org/2026/08/20/Rust-1.98.0/) · [The Rust Programming Language](https://doc.rust-lang.org/book/) · [Rust Editions](https://doc.rust-lang.org/stable/book/appendix-05-editions.html)
 
 ## Roadmap
 
@@ -50,6 +50,16 @@ Read the files in this order:
 - `07-production-projects-reference.md`
 
 Do not jump into `unsafe`, async, or advanced lifetime tricks before ownership and borrowing are comfortable.
+
+### Single-file edition
+
+`RUST-LEARNING-HANDBOOK-2026.md` is a generated, self-contained copy of this README plus all seven chapters
+plus `RUST-STUDY-TRACKER.md`. **Edit the chapter files, never the composite.** Rebuild it with:
+
+```bash
+python build-handbook.py           # regenerate the composite
+python build-handbook.py --check   # verify it is current (used in CI)
+```
 
 ## Environment setup
 
